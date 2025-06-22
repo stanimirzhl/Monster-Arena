@@ -8,17 +8,17 @@ using System.Threading.Tasks;
 
 namespace Monster_Arena.Inventory
 {
-	public class ShieldElixir : Item
+	public class ResurrectingFeather : Item
 	{
-		public ShieldElixir() : base("Shield Elixir", "Blocks enemy attack by 80%")
+		public ResurrectingFeather() : base("Resurrecting Feather", "1 time use only, brings the player back from the death!")
 		{
 		}
 
 		public override void Use(Player player)
 		{
-			player.HasDamageReduction = true;
-
+			player.HasRevive = true;
 			player.Inventory.DropItem(this);
+
 			ConsoleUI.UseItem(this, player);
 		}
 	}

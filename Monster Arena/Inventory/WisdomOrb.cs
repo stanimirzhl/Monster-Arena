@@ -5,18 +5,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Monster_Arena.Inventory
 {
-	public class ShieldElixir : Item
+	public class WisdomOrb : Item
 	{
-		public ShieldElixir() : base("Shield Elixir", "Blocks enemy attack by 80%")
+		public WisdomOrb() : base("Wisdom Orb", "When used, grants 50 % bonus XP for the next 3 battles.")
 		{
 		}
 
 		public override void Use(Player player)
 		{
-			player.HasDamageReduction = true;
+			player.BonusXPRoundsRemaining = 3;
 
 			player.Inventory.DropItem(this);
 			ConsoleUI.UseItem(this, player);

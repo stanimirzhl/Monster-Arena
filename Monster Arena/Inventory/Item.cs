@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Monster_Arena.Inventory
 {
-	public abstract class Item
+	public abstract class Item : IName
 	{
 		private string name;
 

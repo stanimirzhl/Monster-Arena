@@ -26,13 +26,25 @@
 			get { return health; }
 			protected set
 			{
-				if (value < 0)
-				{
-					throw new ArgumentException("Health cannot be lower than 0!");
-				}
 				health = value;
 			}
 		}
+
+		private int maxHealth;
+
+		public int MaxHealth
+		{
+			get { return maxHealth; }
+			protected set
+			{
+				if (value < 1)
+				{
+					throw new ArgumentException("Max health cannot be lower than 1!");
+				}
+				maxHealth = value;
+			}
+		}
+
 
 		private int attackPower;
 
@@ -66,10 +78,11 @@
 
 		public bool IsAlive => Health > 0;
 
-		protected Character(string name, int health, int attackPower, int level)
+		protected Character(string name,int maxHealth, int attackPower, int level)
 		{
 			this.Name = name;
-			this.Health = health;
+			this.MaxHealth = maxHealth;
+			this.Health = MaxHealth;
 			this.AttackPower = attackPower;
 			this.Level = level;
 		}
@@ -85,5 +98,16 @@
 				Health = 0;
 			}
 		}
+
+		public void Heal(int amount)
+		{
+			Health = Math.Min(Health + amount, MaxHealth);
+		}
+
+		protected int CalculateHealthCap(int baseHealth, int level, int maxHealth)
+			=> (int)Math.Min(baseHealth + (level - 1) * 3.5, maxHealth);
+
+		protected int CalculateAttackCap(int baseAttack, int level, int maxAttack)
+			=> (int)Math.Min(baseAttack + (level - 1) * 1.5, maxAttack);
 	}
 }

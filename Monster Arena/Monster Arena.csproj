@@ -8,4 +8,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Game History\" />
+    <Folder Include="Saved Games\" />
+  </ItemGroup>
+
 </Project>
