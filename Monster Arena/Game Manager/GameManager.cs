@@ -22,6 +22,7 @@ namespace Monster_Arena
 		public Monster CurrentMonster { get; private set; }
 		private int TurnCount;
 		private int MonstersKilled = 0;
+		public bool IsSkipped { get; set; } = false;
 		private Random random = new Random();
 
 		private List<string> GameHistory = new List<string>();
@@ -237,7 +238,7 @@ namespace Monster_Arena
 			{
 				TurnCount++;
 
-				if (MonstersKilled % 3 == 0 && MonstersKilled != 0)
+				if (MonstersKilled % 3 == 0 && MonstersKilled != 0 && !IsSkipped)
 				{
 					GiveItemChoice();
 				}
@@ -278,6 +279,7 @@ namespace Monster_Arena
 
 				if (!CurrentMonster.IsAlive)
 				{
+					IsSkipped = false;
 					MonstersKilled++;
 					LogGameEvent($"Monster {CurrentMonster.Name} defeated!");
 					Player.GainXP(CurrentMonster.XPReward);
@@ -431,73 +433,81 @@ namespace Monster_Arena
 		private void GiveItemChoice()
 		{
 			LogGameEvent($"Player reached {MonstersKilled} kills, giving item choice.");
-			Console.Clear();
 			Item newItem = ItemFactory.CreateRandomItem();
+			bool itemHandled = false;
+			IsSkipped = true;
 
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine($"🎁 You found a new item: {newItem.Name} - {newItem.Description}");
-			Console.ResetColor();
-
-			if (Player.Inventory.IsFull)
+			while (!itemHandled)
 			{
-				Console.ForegroundColor = ConsoleColor.Red;
-				Console.WriteLine("⚠️ Your inventory is full! You must free up space to pick up this item.");
+				Console.Clear();
+				Console.ForegroundColor = ConsoleColor.Yellow;
+				Console.WriteLine($"🎁 You found a new item: {newItem.Name} - {newItem.Description}");
 				Console.ResetColor();
-			}
 
-			Console.ForegroundColor = ConsoleColor.Cyan;
-			Console.WriteLine("Press 'I' to open inventory and manage items, or 'S' to skip this item.");
-			Console.ResetColor();
-
-			ConsoleKey choice;
-			do
-			{
-				choice = Console.ReadKey(true).Key;
-			} while (choice != ConsoleKey.I && choice != ConsoleKey.S);
-
-			if (choice == ConsoleKey.S)
-			{
-				Console.ForegroundColor = ConsoleColor.DarkGray;
-				Console.WriteLine($"You chose not to pick up: {newItem.Name}.");
-				Console.ResetColor();
-				Thread.Sleep(1500);
-				return;
-			}
-
-			bool managedInventory = !Player.Inventory.IsFull;
-
-			do
-			{
-				int index = ShowItemSelectionMenu();
-				if (index == -1)
+				if (Player.Inventory.IsFull)
 				{
-					Console.ForegroundColor = ConsoleColor.DarkGray;
-					Console.WriteLine("You exited inventory. Skipping item.");
+					Console.ForegroundColor = ConsoleColor.Red;
+					Console.WriteLine("⚠️ Your inventory is full! You cannot pick up this item.");
 					Console.ResetColor();
-					Thread.Sleep(1500);
-					return;
 				}
 
-				Item selected = Player.Inventory[index];
-				selected.Use(Player);
-				Player.Inventory.DropItemAt(index);
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.WriteLine($"{selected.Name} used and removed from inventory.");
+				Console.ForegroundColor = ConsoleColor.Cyan;
+				Console.WriteLine("Press 'E' to equip the item, 'I' to open inventory, or 'S' to skip.");
 				Console.ResetColor();
-				Thread.Sleep(1500);
 
-				managedInventory = !Player.Inventory.IsFull;
+				ConsoleKey choice;
+				do
+				{
+					choice = Console.ReadKey(true).Key;
+				} while (
+					choice != ConsoleKey.I &&
+					choice != ConsoleKey.S &&
+					(choice != ConsoleKey.E || Player.Inventory.IsFull)
+				);
 
-			} while (!managedInventory);
+				if (choice == ConsoleKey.S)
+				{
+					Console.ForegroundColor = ConsoleColor.DarkGray;
+					Console.WriteLine($"You chose not to pick up: {newItem.Name}.");
+					Console.ResetColor();
+					Thread.Sleep(1500);
+					itemHandled = true;
+				}
+				else if (choice == ConsoleKey.I)
+				{
+					int index = ShowItemSelectionMenu();
+					if (index == -1)
+					{
+						Console.ForegroundColor = ConsoleColor.DarkGray;
+						Console.WriteLine("You exited inventory. Returning to item screen.");
+						Console.ResetColor();
+						Thread.Sleep(1000);
+					}
+					else
+					{
+						Item selected = Player.Inventory[index];
+						selected.Use(Player);
+						Player.Inventory.DropItemAt(index);
 
-			Player.Inventory.PickUpItem(newItem);
-			Console.Clear();
-			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine($"✅ You received: {newItem.Name}!");
-			Console.ForegroundColor = ConsoleColor.DarkGray;
-			Console.WriteLine(newItem.Description);
-			Console.ResetColor();
-			Thread.Sleep(2500);
+						Console.ForegroundColor = ConsoleColor.Green;
+						Console.WriteLine($"{selected.Name} used and removed from inventory.");
+						Console.ResetColor();
+						Thread.Sleep(1500);
+					}
+				}
+				else if (choice == ConsoleKey.E && !Player.Inventory.IsFull)
+				{
+					Player.Inventory.PickUpItem(newItem);
+					Console.Clear();
+					Console.ForegroundColor = ConsoleColor.Green;
+					Console.WriteLine($"✅ You received: {newItem.Name}!");
+					Console.ForegroundColor = ConsoleColor.DarkGray;
+					Console.WriteLine(newItem.Description);
+					Console.ResetColor();
+					Thread.Sleep(2500);
+					itemHandled = true;
+				}
+			}
 		}
 
 		private int ShowBattleMenu()
@@ -600,9 +610,10 @@ namespace Monster_Arena
 					Console.ResetColor();
 					if (Console.ReadKey(true).Key == ConsoleKey.Y)
 					{
+						string droppedItemName = Player.Inventory[index].Name;
 						Player.Inventory.DropItemAt(index);
 						Console.WriteLine("Item dropped.");
-						LogGameEvent($"Player dropped item: {Player.Inventory[index].Name}");
+						LogGameEvent($"Player dropped item: {droppedItemName}");
 						Thread.Sleep(1000);
 						if (index >= Player.Inventory.NumberOfItems()) index = Math.Max(0, Player.Inventory.NumberOfItems() - 1);
 					}
@@ -636,7 +647,7 @@ namespace Monster_Arena
 				writer.WriteLine($"BonusXPRoundsRemaining={Player.BonusXPRoundsRemaining}");
 				writer.WriteLine($"HasDamageReduction={Player.HasDamageReduction}");
 				writer.WriteLine($"HasRevive={Player.HasRevive}");
-
+				writer.WriteLine($"MonstersKilled={MonstersKilled}");
 
 				if (CurrentMonster != null)
 				{
@@ -682,6 +693,8 @@ namespace Monster_Arena
 
 				Player = new Player(data["PlayerName"]);
 				Player.LoadState(data);
+
+				MonstersKilled = int.Parse(data["MonstersKilled"]);
 
 				string[] inventoryItems = data["Inventory"].Split(',', StringSplitOptions.RemoveEmptyEntries);
 				Player.Inventory.DropAllItems();
