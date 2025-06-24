@@ -69,6 +69,7 @@ namespace Monster_Arena.Characters
 			if (HasDamageReduction)
 			{
 				damage = (int)(damage * 0.2);
+				HasDamageReduction = false;
 			}
 			base.Defend(damage);
 
